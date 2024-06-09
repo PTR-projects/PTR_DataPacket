@@ -3,10 +3,9 @@
 // MSG types definition
 typedef enum{
 	PACKET_HEARTBEAT	= 0x00,
-	PACKET_LEGACY_FULL	= 0xAA,
-	PACKET_LEGACY_MIN	= 0x11,	// never used -> remove in future
+	PACKET_LEGACY_FULL	= 0xAA, // kppacket_payload_legacyfull_t
 	PACKET_SENSORS		= 0x01, // kppacket_payload_rocket_meas_t
-	PACKET_ADCS			= 0x02,	// kppacket_payload_rocket_ADCS_t
+	PACKET_ADCS		    = 0x02,	// kppacket_payload_rocket_ADCS_t
 	PACKET_TRACKER		= 0x03,	// kppacket_payload_rocket_tracker_t
 
 	// Custom data packets
@@ -37,7 +36,7 @@ typedef struct __attribute__((__packed__)){
     uint16_t dest_id;
     uint16_t packet_no;
     uint32_t timestamp_ms;
-	uint16_t CRC16;
+    uint16_t CRC16;
 } kppacket_header_t;
 
 // Legacy header structure
@@ -47,7 +46,7 @@ typedef struct __attribute__((__packed__)){
     //uint16_t dest_id;
     uint16_t packet_no;
     uint32_t timestamp_ms;
-	//uint16_t CRC16;
+    //uint16_t CRC16;
 } kppacket_legacyheader_t;
 
 // Sensors measurements
@@ -73,8 +72,8 @@ typedef struct __attribute__((__packed__)){
 // Min. telemetry for trackers
 typedef struct __attribute__((__packed__)){
     uint8_t retransmission_cnt;
-    int32_t lat;		// Latitude  [1e-7 deg]
-    int32_t lon;		// Longitude [1e-7 deg]
+    int32_t lat;	// Latitude  [1e-7 deg]
+    int32_t lon;	// Longitude [1e-7 deg]
     int16_t alti_gps;	// Height above ellipsoid [x10m]
     uint8_t sats_fix;	// 6b - sat_cnt + 2b fix
 } kppacket_payload_rocket_tracker_t;
@@ -94,6 +93,35 @@ typedef struct __attribute__((__packed__)){
     int16_t  velocity_10;    // Velocity*10 [m/s]
     uint16_t altitude;       // Altitude [m]
 } kppacket_payload_rocket_ADCS_t;
+
+typedef struct __attribute__((__packed__)){
+	uint16_t packet_id;
+	uint16_t id;
+	uint16_t packet_no;
+	uint32_t timestamp_ms;
+	uint8_t state;
+	uint8_t flags;
+
+	uint8_t vbat_10;	//Vbat*10
+
+	int16_t accX_100;	//Acc*100 [g]
+	int16_t accY_100;
+	int16_t accZ_100;
+
+	int16_t gyroX_10;	//Gyro*10 [deg/s]
+	int16_t gyroY_10;
+	int16_t gyroZ_10;
+
+	int16_t tilt_100;	//Tilt*100 [deg]
+	float pressure;		//Pressure [Pa]
+	int16_t velocity_10;	//Velocity*10 [m/s]
+	uint16_t altitude;		//Altitude [m]
+
+	int32_t lat;		//[1e-7 deg]
+	int32_t lon;		//[1e-7 deg]
+	int32_t alti_gps;	//Height above ellipsoid [- mm]
+	uint8_t sats_fix;	//6b - sats + 2b fix
+} kppacket_payload_legacyfull_t;
 
 // Overal packet definition (header + payload)
 typedef struct __attribute__((__packed__)){

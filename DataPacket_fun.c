@@ -90,35 +90,31 @@ int8_t DataPacket_build_msg(kppacket_t * msg, msg_type_e msg_type, bool encrypte
     switch(msg_type){
         case PACKET_HEARTBEAT:
             expected_payload_len = 0;
-            expected_header_len = sizeof(kppacket_header_t);
+            expected_header_len  = sizeof(kppacket_header_t);
             break;
         case PACKET_LEGACY_FULL:
-            expected_payload_len = 0;
-            expected_header_len = sizeof(kppacket_legacyheader_t);
-            break;
-        case PACKET_LEGACY_MIN:
-            expected_payload_len = 0;
-            expected_header_len = sizeof(kppacket_legacyheader_t);
+            expected_payload_len = sizeof(kppacket_payload_legacyfull_t);
+            expected_header_len  = sizeof(kppacket_legacyheader_t);
             break;
         case PACKET_SENSORS:
             expected_payload_len = sizeof(kppacket_payload_rocket_meas_t);
-            expected_header_len = sizeof(kppacket_header_t);
+            expected_header_len  = sizeof(kppacket_header_t);
             break;
         case PACKET_ADCS:
             expected_payload_len = sizeof(kppacket_payload_rocket_ADCS_t);
-            expected_header_len = sizeof(kppacket_header_t);
+            expected_header_len  = sizeof(kppacket_header_t);
             break;
         case PACKET_TRACKER:
             expected_payload_len = sizeof(kppacket_payload_rocket_tracker_t);
-            expected_header_len = sizeof(kppacket_header_t);
+            expected_header_len  = sizeof(kppacket_header_t);
             break;
         case PACKET_CUSTOM_8B:
             expected_payload_len = 8;
-            expected_header_len = sizeof(kppacket_header_t);
+            expected_header_len  = sizeof(kppacket_header_t);
             break;
         case PACKET_CUSTOM_16B:
             expected_payload_len = 16;
-            expected_header_len = sizeof(kppacket_header_t);
+            expected_header_len  = sizeof(kppacket_header_t);
             break;
         case PACKET_CUSTOM_32B:
             expected_payload_len = 32;
@@ -126,28 +122,32 @@ int8_t DataPacket_build_msg(kppacket_t * msg, msg_type_e msg_type, bool encrypte
             break;
         case PACKET_CUSTOM_64B:
             expected_payload_len = 64;
-            expected_header_len = sizeof(kppacket_header_t);
+            expected_header_len  = sizeof(kppacket_header_t);
             break;
         case PACKET_CUSTOM_128B:
             expected_payload_len = 128;
-            expected_header_len = sizeof(kppacket_header_t);
+            expected_header_len  = sizeof(kppacket_header_t);
             break;
         case PACKET_CUSTOM_240B:
             expected_payload_len = 240;
-            expected_header_len = sizeof(kppacket_header_t);
+            expected_header_len  = sizeof(kppacket_header_t);
             break;
     }
 
     if(expected_payload_len != payload_len)
         return -1;
 
+    uint8_t payload_offset = 0;
+    if(encrypted){
+        payload_offset = 4;
+    }
     if(payload_len != 0)
-        memcpy(msg->payload, payload, payload_len);
+        memcpy(msg->payload + payload_offset, payload, payload_len);
 
-    msg->packet_len = expected_payload_len + expected_header_len;
+    msg->packet_len = expected_payload_len + expected_header_len + payload_offset;
     
     // Calculate payload CRC16
-    msg.crc16 = crc16(msg->payload, expected_payload_len);
+    msg.crc16 = crc16(msg->payload + payload_offset, expected_payload_len);
 
     if(encrypted){
         encrypt_msg(msg);
@@ -168,9 +168,19 @@ static uint16_t crc16(uint8_t *data, uint16_t length) {
 }
 
 static void encrypt_msg(kppacket_t * msg){
-    // Add random Byte at the end of the packet and increase packet size
-    &(msg->header) +  msg->packet_len = getRandomByte();
-    msg->packet_len = msg->packet_len + 1;
+
+    uint8_t * enc_header_ptr = msg->payload;
+    struct {
+        uint16_t random_2byte;
+        uint16_t const_2byte;
+    } encryption_header;
+
+    encryption_header.const_2byte = 0xabcd;
+    encryption_header.random_2byte = getRandomByte() | (getRandomByte()<<8);
+
+    // Add security header at the beginning of the payload
+    memcpy(enc_header_ptr, encryption_header, sizeof(encryption_header));
+
 
     // Encryption Magic
     // TODO
