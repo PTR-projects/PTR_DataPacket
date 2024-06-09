@@ -72,8 +72,9 @@ typedef struct __attribute__((__packed__)){
 // Min. telemetry for trackers
 typedef struct __attribute__((__packed__)){
     uint8_t retransmission_cnt;
-    int32_t lat;	// Latitude  [1e-7 deg]
-    int32_t lon;	// Longitude [1e-7 deg]
+    uint8_t vbat_10;    // Battery voltage (in decivolts [V*10])
+    int32_t lat;	    // Latitude  [1e-7 deg]
+    int32_t lon;	    // Longitude [1e-7 deg]
     int16_t alti_gps;	// Height above ellipsoid [x10m]
     uint8_t sats_fix;	// 6b - sat_cnt + 2b fix
 } kppacket_payload_rocket_tracker_t;
