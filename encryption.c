@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include "encryption.h"
 
 static void btea(uint8_t *v, int size, uint64_t key64);
@@ -11,11 +12,11 @@ void Encryption_encode(uint8_t *v, int size){
     btea(v,  size, encryption_key);
 }
 
-void Encryption_decode(uint32_t *v, int size){
+void Encryption_decode(uint8_t *v, int size){
     btea(v,  -size, encryption_key);
 }
 
-/* XXTEA encryption algorithm 
+/* XXTEA encryption algorithm
 *  Source: https://en.wikipedia.org/wiki/XXTEA
 */
 static void btea(uint8_t *v, int size, uint64_t key64) {
@@ -24,15 +25,15 @@ static void btea(uint8_t *v, int size, uint64_t key64) {
 	uint32_t  key[4] = {0};
     uint32_t y, z, sum;
     unsigned p, rounds, e;
-	
+
 	/* Build key */
 	for(uint32_t i=0; i<4; i++){
 		key[i] = *(((uint16_t*)(&key64))+i);
 		key[i] |= key[i]<<16;
 	}
-	
+
 	/* Encoding Part */
-    if (size > 1) {          
+    if (size > 1) {
 		rounds = 6 + 52/size;
 		sum = 0;
 		z = v[size-1];
@@ -40,18 +41,18 @@ static void btea(uint8_t *v, int size, uint64_t key64) {
 			sum += DELTA;
 			e = (sum >> 2) & 3;
 			for (p=0; p<size-1; p++) {
-				y = v[p+1]; 
+				y = v[p+1];
 				z = v[p] += MX;
 			}
 			y = v[0];
 			z = v[size-1] += MX;
 		} while (--rounds);
 
-		return 0;
+		return;
     }
-	
+
 	/* Decoding Part */
-	if (size < -1) {  
+	if (size < -1) {
 		size = -size;
 		rounds = 6 + 52/size;
 		sum = rounds*DELTA;
@@ -66,9 +67,7 @@ static void btea(uint8_t *v, int size, uint64_t key64) {
 			y = v[0] -= MX;
 			sum -= DELTA;
 		} while (--rounds);
-	  
-	return 0;
+
+	return;
     }
-	
-return 1;
 }
