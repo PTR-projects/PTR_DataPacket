@@ -7,6 +7,9 @@ typedef enum{
 	PACKET_SENSORS		= 0x01, // kppacket_payload_rocket_meas_t
 	PACKET_ADCS		    = 0x02,	// kppacket_payload_rocket_ADCS_t
 	PACKET_TRACKER		= 0x03,	// kppacket_payload_rocket_tracker_t
+	PACKET_RECU_TC		= 0x80,	// kppacket_recu_tc_t
+	PACKET_RECU_TM		= 0x81,	// kppacket_recu_tm_t
+	PACKET_RECU_CFG		= 0x82,	// kppacket_recu_cfg_t
 
 	// Custom data packets
 	PACKET_CUSTOM_8B	= 0xFC,	// payload = 8B
@@ -20,12 +23,12 @@ typedef enum{
 // Packet ID definition
 typedef union{
 	uint16_t ID;
-	struct{
+	struct __attribute__((__packed__)){
+		uint8_t msg_type;		    // Message type
 		uint8_t msg_ver		: 2;	// Message version (should be 0, for future use)
 		uint8_t retransmit	: 1;	// Retransmission flag (1=ON, 0=OFF)
 		uint8_t encoded		: 1;	// Data encryption (1=ON, 0=OFF)
 		uint8_t redu		: 4;	// Redundant bits for future use
-		msg_type_e msg_type;		// Message type
 	};
 } packet_id_t;
 
@@ -36,18 +39,8 @@ typedef struct __attribute__((__packed__)){
     uint16_t dest_id;
     uint16_t packet_no;
     uint32_t timestamp_ms;
-    uint16_t CRC16;
+    uint16_t redu;
 } kppacket_header_t;
-
-// Legacy header structure
-typedef struct __attribute__((__packed__)){
-    packet_id_t packet_id;
-    uint16_t sender_id;
-    //uint16_t dest_id;
-    uint16_t packet_no;
-    uint32_t timestamp_ms;
-    //uint16_t CRC16;
-} kppacket_legacyheader_t;
 
 // Sensors measurements
 typedef struct __attribute__((__packed__)){
@@ -95,11 +88,74 @@ typedef struct __attribute__((__packed__)){
     uint16_t altitude;       // Altitude [m]
 } kppacket_payload_rocket_ADCS_t;
 
+// RECU command structure
+typedef struct  __attribute__((__packed__)){
+	int8_t  RSSI_uplink;
+	uint8_t seed;
+
+	uint8_t state_mode		:1;
+	uint8_t state_arm     	:1;
+	uint8_t state_trigger	:1;
+	uint8_t state_abort   	:1;
+	uint8_t               	:0;
+
+	uint8_t force_ign1		:1;
+	uint8_t force_ign2		:1;
+	uint8_t force_servo1	:1;
+	uint8_t force_servo2	:1;
+	uint8_t force_servo3	:1;
+	uint8_t 				:0;
+}  kppacket_recu_tc_t;
+
+// RECU config structure
 typedef struct __attribute__((__packed__)){
-	uint16_t packet_id;
-	uint16_t id;
-	uint16_t packet_no;
-	uint32_t timestamp_ms;
+	int8_t  RSSI_uplink;
+	uint8_t seed;
+
+	uint16_t time_to_start_1s;
+	uint16_t time_ign_to_mov_100ms;
+	uint16_t servo1_min;
+	uint16_t servo1_max;
+	uint16_t servo2_min;
+	uint16_t servo2_max;
+	uint16_t servo3_min;
+	uint16_t servo3_max;
+}  kppacket_recu_cfg_t;
+
+// RECU telemetry structure
+typedef struct __attribute__((__packed__)){
+	int8_t  RSSI_downlink;
+	uint8_t seed;
+	uint16_t Vbat_1000;
+
+	uint8_t state_mode		:1;
+	uint8_t state_arm     	:1;
+	uint8_t state_trigger	:1;
+	uint8_t state_abort   	:1;
+	uint8_t               	:0;
+
+	uint8_t ign1_state  	:1;
+	uint8_t ign1_cont   	:1;
+	uint8_t ign2_state  	:1;
+	uint8_t ign2_cont   	:1;
+	uint8_t servo1_pwr  	:1;
+	uint8_t servo23_pwr 	:1;
+	uint8_t             	:0;
+
+	int16_t servo1;
+	int16_t servo2;
+	int16_t servo3;
+} kppacket_recu_tm_t;
+
+// Legacy header structure
+typedef struct __attribute__((__packed__)){
+    packet_id_t packet_id;
+    uint16_t sender_id;
+    uint16_t packet_no;
+    uint32_t timestamp_ms;
+} kppacket_legacyheader_t;
+
+typedef struct __attribute__((__packed__)){
 	uint8_t state;
 	uint8_t flags;
 
@@ -124,17 +180,16 @@ typedef struct __attribute__((__packed__)){
 	uint8_t sats_fix;	//6b - sats + 2b fix
 } kppacket_payload_legacyfull_t;
 
-// Overal packet definition (header + payload)
 typedef struct __attribute__((__packed__)){
-    uin8_t packet_len;
+    uint8_t packet_len;
     union{
         struct{
             kppacket_header_t header;
             uint8_t  payload[255 - sizeof(kppacket_header_t)];
         };
-        struct{
-            kppacket_legacyheader_t legacyheader;
-            uint8_t  legacypayload[255 - sizeof(kppacket_legacyheader_t)];
-        };
-    }
+       struct{
+           kppacket_legacyheader_t legacyheader;
+           uint8_t  legacypayload[255 - sizeof(kppacket_legacyheader_t)];
+       };
+    };
 } kppacket_t;
